@@ -1,0 +1,25 @@
+# Игнорируем двоичные исполняемые файлы
+*.exe
+*.dll
+*.so
+
+# Лог-файлы и кэш
+logs/
+cache/
+
+# Конфигурации IDE
+.idea/
+.vscode/
+
+# Файлы Docker
+docker-compose.yml
+Dockerfile*
+
+# Кэш-папки и бинарники
+build/
+dist/
+node_modules/
+target/
+out/
+bin/
+obj/
