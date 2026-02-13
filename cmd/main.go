@@ -7,12 +7,21 @@ import (
 	"telegramBot/handlers"
 )
 
+const (
+	StateIdle = iota // начальное состояние
+	StateWaitingForProductName
+	StateWaitingForQuantity
+)
+
+var states = make(map[int64]int)
+var globalStorageForProduct = make(map[int64]string)
+
 func main() {
 	botAPI, err := tb.NewBotAPI(auth.Token)
 	if err != nil {
 		panic(err)
 	}
-
+	productMap := map[string]*handlers.Product{}
 	botAPI.Debug = true
 	fmt.Printf("Authorized on account %s\n", botAPI.Self.UserName)
 
@@ -21,26 +30,48 @@ func main() {
 
 	updates := botAPI.GetUpdatesChan(u)
 
-	var products []handlers.Product
+	//var products []handlers.Product
 
 	for update := range updates {
 		if update.Message == nil { // игнорируем пустые обновления
 			continue
 		}
-		switch update.Message.Text {
-		case "start":
-			fmt.Println("ENTER")
-			//botAPI.SendMessage(update.Message.Chat.ID, "Привет! Я продуктовый бот.")
 
-			handlers.Start(botAPI, update.Message, &products)
-		case "/add_product":
-			botAPI.Send(tb.NewMessage(update.Message.Chat.ID, "ничего удивительного, пока нихрена не делает"))
-			//addProduct(botAPI, &products, update)
-		case "/stop_add_p":
+		chatID := update.Message.Chat.ID
+		currentState := states[chatID]
 
-			//stopAddingProducts(botAPI, &products, update)
-		case "/list_p":
-			//listProducts(botAPI, products, update)
+		switch currentState {
+		case StateIdle:
+			switch update.Message.Text {
+			case "/start":
+				handlers.Start(botAPI, update.Message)
+			case "/add_product":
+				botAPI.Send(tb.NewMessage(update.Message.Chat.ID, "Добавление продукта.Введите сначала наименование продукта"))
+				states[chatID] = StateWaitingForProductName
+			case "/possibilities":
+				botAPI.Send(tb.NewMessage(update.Message.Chat.ID, "ничего удивительного, пока нихрена не делает"))
+
+			case "/list":
+				botAPI.Send(tb.NewMessage(update.Message.Chat.ID, "Выводим список продуктов"))
+
+				//botAPI.Send(tb.NewMessage(update.Message.Chat.ID, productMap))
+			}
+		case StateWaitingForProductName:
+			productName := update.Message.Text
+			globalStorageForProduct[chatID] = productName
+			botAPI.Send(tb.NewMessage(update.Message.Chat.ID, "Отлично!Укажите количество"))
+			states[chatID] = StateWaitingForQuantity
+		case StateWaitingForQuantity:
+			count := update.Message.Text
+			errAddProduct := handlers.AddProduct(globalStorageForProduct[chatID], count, productMap)
+			if errAddProduct != nil {
+				botAPI.Send(tb.NewMessage(chatID, errAddProduct.Error()))
+			} else {
+				botAPI.Send(tb.NewMessage(chatID, "Добавление продукта прошло успешно!"))
+			}
+			fmt.Println(productMap)
+			states[chatID] = StateIdle
+			delete(globalStorageForProduct, chatID)
 		}
 	}
 }

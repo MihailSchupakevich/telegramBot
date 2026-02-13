@@ -2,7 +2,7 @@ package handlers
 
 type Product struct {
 	nameProduct string
-	count       int
+	count       string
 }
 
 type ProductsI interface {
