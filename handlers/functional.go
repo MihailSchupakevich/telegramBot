@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log"
 )
@@ -18,4 +19,16 @@ func Start(botApi *tgbotapi.BotAPI, m *tgbotapi.Message) {
 	}
 }
 
-//func
+func List(botApi *tgbotapi.BotAPI, m *tgbotapi.Message, productMap map[string]*Product) {
+	if len(productMap) == 0 {
+		botApi.Send(tgbotapi.NewMessage(m.Chat.ID, "Еще ничего не добавлено!"))
+		return
+	}
+	result := ""
+	arguments := 1
+	for nameProduct, value := range productMap {
+		result += fmt.Sprintf("[%v] %s в количестве: %s\n", arguments, nameProduct, value.count)
+		arguments += 1
+	}
+	botApi.Send(tgbotapi.NewMessage(m.Chat.ID, result))
+}

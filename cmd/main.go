@@ -53,7 +53,7 @@ func main() {
 
 			case "/list":
 				botAPI.Send(tb.NewMessage(update.Message.Chat.ID, "Выводим список продуктов"))
-
+				handlers.List(botAPI, update.Message, productMap)
 				//botAPI.Send(tb.NewMessage(update.Message.Chat.ID, productMap))
 			}
 		case StateWaitingForProductName:
