@@ -15,6 +15,7 @@ const (
 
 var states = make(map[int64]int)
 var globalStorageForProduct = make(map[int64]string)
+var chatId int64
 
 func main() {
 	botAPI, err := tb.NewBotAPI(auth.Token)
@@ -27,51 +28,77 @@ func main() {
 
 	u := tb.NewUpdate(0)
 	u.Timeout = 60
-
 	updates := botAPI.GetUpdatesChan(u)
 
-	//var products []handlers.Product
+	keyboard := [][]tb.InlineKeyboardButton{
+		{tb.NewInlineKeyboardButtonData("Добавить продукт", "add_product")},
+		{tb.NewInlineKeyboardButtonData("Возможности", "possibilities")},
+		{tb.NewInlineKeyboardButtonData("Список", "list")},
+	}
+
+	replyMarkup := tb.NewInlineKeyboardMarkup(keyboard...)
 
 	for update := range updates {
-		if update.Message == nil { // игнорируем пустые обновления
+		if update.Message == nil && update.CallbackQuery == nil {
 			continue
 		}
-
-		chatID := update.Message.Chat.ID
-		currentState := states[chatID]
-
+		if update.CallbackQuery != nil {
+			chatId = update.CallbackQuery.Message.Chat.ID
+		} else {
+			chatId = update.Message.Chat.ID
+		}
+		currentState := states[chatId]
+		if currentState == 0 || currentState == StateIdle {
+			message := tb.NewMessage(chatId, "Выберите действие")
+			message.ReplyMarkup = &replyMarkup
+			botAPI.Send(message)
+			states[chatId] = StateIdle
+		}
 		switch currentState {
 		case StateIdle:
-			switch update.Message.Text {
-			case "/start":
-				handlers.Start(botAPI, update.Message)
-			case "/add_product":
-				botAPI.Send(tb.NewMessage(update.Message.Chat.ID, "Добавление продукта.Введите сначала наименование продукта"))
-				states[chatID] = StateWaitingForProductName
-			case "/possibilities":
-				botAPI.Send(tb.NewMessage(update.Message.Chat.ID, "ничего удивительного, пока нихрена не делает"))
-
-			case "/list":
-				botAPI.Send(tb.NewMessage(update.Message.Chat.ID, "Выводим список продуктов"))
-				handlers.List(botAPI, update.Message, productMap)
-				//botAPI.Send(tb.NewMessage(update.Message.Chat.ID, productMap))
+			if update.CallbackQuery != nil {
+				cbq := update.CallbackQuery
+				switch cbq.Data {
+				case "add_product":
+					botAPI.Send(tb.NewMessage(chatId, "Добавление продукта. Введите название продукта"))
+					states[chatId] = StateWaitingForProductName
+				case "possibilities":
+					botAPI.Send(tb.NewMessage(chatId, "ничего удивительного, пока нихрена не делает"))
+				case "list":
+					botAPI.Send(tb.NewMessage(chatId, "Выводим список продуктов"))
+					handlers.List(botAPI, update.CallbackQuery, productMap)
+				}
 			}
+			//else if update.Message != nil {
+			//	switch update.Message.Text {
+			//	case "/start":
+			//		handlers.Start(botAPI, update.Message)
+			//	case "/add_product":
+			//		botAPI.Send(tb.NewMessage(chatId, "Добавление продукта. Введите название продукта"))
+			//		states[chatId] = StateWaitingForProductName
+			//	case "/possibilities":
+			//		botAPI.Send(tb.NewMessage(chatId, "ничего удивительного, пока нихрена не делает"))
+			//	case "/list":
+			//		botAPI.Send(tb.NewMessage(chatId, "Выводим список продуктов"))
+			//		handlers.List(botAPI, update.Message, productMap)
+			//	}
+			//}
 		case StateWaitingForProductName:
+			fmt.Println("ENTER")
 			productName := update.Message.Text
-			globalStorageForProduct[chatID] = productName
-			botAPI.Send(tb.NewMessage(update.Message.Chat.ID, "Отлично!Укажите количество"))
-			states[chatID] = StateWaitingForQuantity
+			globalStorageForProduct[chatId] = productName
+			botAPI.Send(tb.NewMessage(chatId, "Отлично! Укажите количество"))
+			states[chatId] = StateWaitingForQuantity
 		case StateWaitingForQuantity:
 			count := update.Message.Text
-			errAddProduct := handlers.AddProduct(globalStorageForProduct[chatID], count, productMap)
+			errAddProduct := handlers.AddProduct(globalStorageForProduct[chatId], count, productMap)
 			if errAddProduct != nil {
-				botAPI.Send(tb.NewMessage(chatID, errAddProduct.Error()))
+				botAPI.Send(tb.NewMessage(chatId, errAddProduct.Error()))
 			} else {
-				botAPI.Send(tb.NewMessage(chatID, "Добавление продукта прошло успешно!"))
+				botAPI.Send(tb.NewMessage(chatId, "Добавление продукта прошло успешно!"))
 			}
-			fmt.Println(productMap)
-			states[chatID] = StateIdle
-			delete(globalStorageForProduct, chatID)
+			states[chatId] = StateIdle
+			delete(globalStorageForProduct, chatId)
 		}
 	}
 }

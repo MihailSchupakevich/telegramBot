@@ -13,15 +13,15 @@ func AddProduct(nameProduct string, count string, productMap map[string]*Product
 }
 
 func Start(botApi *tgbotapi.BotAPI, m *tgbotapi.Message) {
-	_, err := botApi.Send(tgbotapi.NewMessage(m.Chat.ID, "Добро пожаловать в продуктового тг бота!"))
+	_, err := botApi.Send(tgbotapi.NewMessage(m.Chat.ID, "Добро пожаловать в продуктового тг бота!\n"))
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-func List(botApi *tgbotapi.BotAPI, m *tgbotapi.Message, productMap map[string]*Product) {
+func List(botApi *tgbotapi.BotAPI, m *tgbotapi.CallbackQuery, productMap map[string]*Product) {
 	if len(productMap) == 0 {
-		botApi.Send(tgbotapi.NewMessage(m.Chat.ID, "Еще ничего не добавлено!"))
+		botApi.Send(tgbotapi.NewMessage(m.Message.Chat.ID, "Еще ничего не добавлено!"))
 		return
 	}
 	result := ""
@@ -30,5 +30,5 @@ func List(botApi *tgbotapi.BotAPI, m *tgbotapi.Message, productMap map[string]*P
 		result += fmt.Sprintf("[%v] %s в количестве: %s\n", arguments, nameProduct, value.count)
 		arguments += 1
 	}
-	botApi.Send(tgbotapi.NewMessage(m.Chat.ID, result))
+	botApi.Send(tgbotapi.NewMessage(m.Message.Chat.ID, result))
 }
