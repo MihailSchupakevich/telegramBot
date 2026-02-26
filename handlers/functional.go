@@ -3,7 +3,6 @@ package handlers
 import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"log"
 )
 
 func AddProduct(nameProduct string, count string, productMap map[string]*Product) error {
@@ -12,12 +11,12 @@ func AddProduct(nameProduct string, count string, productMap map[string]*Product
 	return nil
 }
 
-func Start(botApi *tgbotapi.BotAPI, m *tgbotapi.Message) {
-	_, err := botApi.Send(tgbotapi.NewMessage(m.Chat.ID, "Добро пожаловать в продуктового тг бота!\n"))
-	if err != nil {
-		log.Fatal(err)
-	}
-}
+//func Start(botApi *tgbotapi.BotAPI, m *tgbotapi.Message) {
+//	_, err := botApi.Send(tgbotapi.NewMessage(m.Chat.ID, "Добро пожаловать в продуктового тг бота!\n"))
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//}
 
 func List(botApi *tgbotapi.BotAPI, m *tgbotapi.CallbackQuery, productMap map[string]*Product) {
 	if len(productMap) == 0 {
@@ -31,4 +30,10 @@ func List(botApi *tgbotapi.BotAPI, m *tgbotapi.CallbackQuery, productMap map[str
 		arguments += 1
 	}
 	botApi.Send(tgbotapi.NewMessage(m.Message.Chat.ID, result))
+}
+
+func Menu(botApi *tgbotapi.BotAPI, chatId int64, replyMarkup tgbotapi.InlineKeyboardMarkup) {
+	message := tgbotapi.NewMessage(chatId, "Выберите действие")
+	message.ReplyMarkup = &replyMarkup
+	botApi.Send(message)
 }
